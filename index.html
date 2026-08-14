@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Tapr - quit vaping on your terms</title>
+<meta name="theme-color" content="#0F6E56" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icons/icon-192.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ONBOARDING -->
+  <section id="view-onboarding" class="view hidden">
+    <div class="screen">
+
+      <div id="ob-step-1" class="ob-step">
+        <p class="eyebrow">Step 1 of 3</p>
+        <h1>Your vape</h1>
+        <label>Cost per vape (PHP)</label>
+        <input type="number" id="ob-cost" placeholder="450" inputmode="decimal" />
+        <label>How long does one last you</label>
+        <div class="row">
+          <input type="number" id="ob-duration" placeholder="1" inputmode="numeric" style="width:80px" />
+          <select id="ob-duration-unit">
+            <option value="days">Days</option>
+            <option value="weeks">Weeks</option>
+          </select>
+        </div>
+        <p class="error hidden" id="ob-error-1"></p>
+        <button class="primary" onclick="goToStep(2)">Continue</button>
+      </div>
+
+      <div id="ob-step-2" class="ob-step hidden">
+        <p class="eyebrow">Step 2 of 3</p>
+        <h1>Puff rating</h1>
+        <p class="muted">Not sure? Tell us what vape you have.</p>
+        <div class="row">
+          <input type="text" id="ob-vape-name" placeholder="e.g. Flava Nimmbox" style="flex:1" />
+          <button onclick="lookupVape()">Look up</button>
+        </div>
+        <div id="ob-lookup-result" class="hint hidden"></div>
+        <label>Rated puffs</label>
+        <input type="number" id="ob-puffs" value="10000" inputmode="numeric" />
+        <p class="error hidden" id="ob-error-2"></p>
+        <div class="row">
+          <button onclick="goToStep(1)">Back</button>
+          <button class="primary" onclick="computeBaseline()">Continue</button>
+        </div>
+      </div>
+
+      <div id="ob-step-3" class="ob-step hidden">
+        <p class="eyebrow">Step 3 of 3</p>
+        <h1>Your baseline</h1>
+        <div class="baseline-card">
+          <p class="muted">Based on what you told us</p>
+          <p class="big-number" id="ob-baseline-display">--</p>
+          <p class="muted">puffs per hour, unrestricted</p>
+        </div>
+        <label>Doesn't look right? Edit it</label>
+        <input type="number" id="ob-baseline-input" inputmode="numeric" />
+        <p class="hint" id="ob-cost-per-puff"></p>
+        <button class="primary" onclick="finishOnboarding()">Start tracking</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- HOME -->
+  <section id="view-home" class="view hidden">
+    <div class="screen">
+
+      <div class="topbar">
+        <div>
+          <p class="eyebrow" id="home-protocol-label">21-day protocol</p>
+          <p class="day-label" id="home-day-label">Day 1 of 21</p>
+        </div>
+        <button class="icon-btn" aria-label="Settings" onclick="showView('settings')">
+          <span class="icon">&#9881;</span>
+        </button>
+      </div>
+
+      <div class="progress-bar"><div class="progress-fill" id="home-progress-fill"></div></div>
+
+      <div class="ring-wrap">
+        <svg viewBox="0 0 180 180" class="ring-svg">
+          <circle cx="90" cy="90" r="78" class="ring-bg" />
+          <circle cx="90" cy="90" r="78" class="ring-fg" id="ring-fg" />
+        </svg>
+        <div class="ring-center">
+          <p class="ring-label" id="ring-window-type">Restricted</p>
+          <p class="ring-time" id="ring-time">--:--:--</p>
+          <p class="ring-sub" id="ring-sub"></p>
+        </div>
+      </div>
+
+      <div class="status-banner" id="status-banner">
+        <span id="status-text">No vapes yet this window</span>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-tile">
+          <p class="stat-label">Saved so far</p>
+          <p class="stat-value" id="home-saved">&#8369;0</p>
+        </div>
+        <div class="stat-tile">
+          <p class="stat-label">Last check-in</p>
+          <p class="stat-value" id="home-last-mood">--</p>
+        </div>
+      </div>
+
+      <button class="primary full" id="allowed-window-btn" onclick="showView('puffLog')">Log puffs</button>
+
+      <div class="row">
+        <button class="full" onclick="showView('rewards')">Rewards</button>
+        <button class="full danger-outline" onclick="showView('slip')">Log a slip</button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- PUFF LOG (allowed window) -->
+  <section id="view-puffLog" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('home')">&#8592; Back</button>
+      <p class="eyebrow" id="puff-window-status">Allowed window</p>
+      <h1 id="puff-window-time">-- left</h1>
+      <p class="muted center">Puffs this window</p>
+      <div class="counter-row">
+        <button class="counter-btn" aria-label="Remove a puff" onclick="changePuff(-1)">-</button>
+        <span class="counter-value" id="puff-count">0</span>
+        <button class="counter-btn" aria-label="Log a puff" onclick="changePuff(1)">+</button>
+      </div>
+      <p class="hint center" id="puff-baseline-note"></p>
+      <div class="save-preview">
+        <div class="row space-between">
+          <span class="muted">Saved so far this window</span>
+          <span id="puff-saved">&#8369;0.00</span>
+        </div>
+        <div class="progress-bar small"><div class="progress-fill" id="puff-bar"></div></div>
+      </div>
+      <button class="primary full" onclick="lockPuffWindow()">Lock in and close window</button>
+    </div>
+  </section>
+
+  <!-- MOOD CHECK-IN -->
+  <section id="view-mood" class="view hidden">
+    <div class="screen">
+      <p class="eyebrow center">Restricted window complete</p>
+      <h1 class="center">How was that stretch?</h1>
+      <div class="emoji-grid" id="emoji-grid">
+        <button class="mood-btn" data-mood="Easy"><span class="emoji">&#128524;</span><span>Easy</span></button>
+        <button class="mood-btn" data-mood="Okay"><span class="emoji">&#128578;</span><span>Okay</span></button>
+        <button class="mood-btn" data-mood="Restless"><span class="emoji">&#128533;</span><span>Restless</span></button>
+        <button class="mood-btn" data-mood="Tough"><span class="emoji">&#128547;</span><span>Tough</span></button>
+        <button class="mood-btn" data-mood="Irritable"><span class="emoji">&#128548;</span><span>Irritable</span></button>
+        <button class="mood-btn" data-mood="Anxious"><span class="emoji">&#128560;</span><span>Anxious</span></button>
+        <button class="mood-btn" data-mood="Proud"><span class="emoji">&#128170;</span><span>Proud</span></button>
+        <button class="mood-btn" data-mood="Tired"><span class="emoji">&#128564;</span><span>Tired</span></button>
+      </div>
+      <label>Anything else? (optional)</label>
+      <textarea id="mood-note" rows="3" placeholder="What triggered it, what helped, anything you want to remember"></textarea>
+      <p class="error hidden" id="mood-error">Pick how you felt first.</p>
+      <button class="primary full" onclick="saveMood()">Save and continue</button>
+    </div>
+  </section>
+
+  <!-- SLIP LOG -->
+  <section id="view-slip" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('home')">&#8592; Back</button>
+      <h1>Log an urge or a slip</h1>
+      <p class="muted">No shame either way, this is just data.</p>
+      <div class="row" style="margin: 1rem 0;">
+        <button class="full" id="slip-survived-btn" onclick="setSlipType('survived')">I beat it</button>
+        <button class="full" id="slip-gave-in-btn" onclick="setSlipType('gave_in')">I gave in</button>
+      </div>
+      <label>Anything else? (optional)</label>
+      <textarea id="slip-note" rows="3" placeholder="What triggered it, what helped"></textarea>
+      <button class="primary full" onclick="saveSlip()">Save</button>
+    </div>
+  </section>
+
+  <!-- REWARDS -->
+  <section id="view-rewards" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('home')">&#8592; Back</button>
+      <p class="muted center">Total saved so far</p>
+      <p class="big-number center" id="rewards-total">&#8369;0</p>
+      <p class="hint center" id="rewards-puffs">0 puffs not taken</p>
+      <div class="status-banner success" id="rewards-milestone-banner"></div>
+      <div id="rewards-list"></div>
+      <button class="full" onclick="showView('addReward')">+ Add a reward</button>
+    </div>
+  </section>
+
+  <!-- ADD REWARD -->
+  <section id="view-addReward" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('rewards')">&#8592; Back</button>
+      <h1>Add a reward</h1>
+      <label>What are you saving for</label>
+      <input type="text" id="reward-title" placeholder="New shoes" />
+      <label>How much does it cost (PHP)</label>
+      <input type="number" id="reward-cost" inputmode="decimal" />
+      <p class="error hidden" id="reward-error"></p>
+      <button class="primary full" onclick="addReward()">Add reward</button>
+    </div>
+  </section>
+
+  <!-- CLAIM REWARD -->
+  <section id="view-claimReward" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('rewards')">&#8592; Back</button>
+      <p class="eyebrow">Claim reward</p>
+      <h1>What did you get?</h1>
+      <label>Item</label>
+      <input type="text" id="claim-item" />
+      <label>Amount spent (optional)</label>
+      <input type="number" id="claim-amount" inputmode="decimal" />
+      <button class="primary full" onclick="claimReward()">Mark as claimed</button>
+    </div>
+  </section>
+
+  <!-- DAY 22 CHOICE -->
+  <section id="view-choice" class="view hidden">
+    <div class="screen">
+      <p class="center" style="font-size:28px;">&#127881;</p>
+      <h1 class="center">21 days done</h1>
+      <p class="muted center">You've built real capacity. What's next?</p>
+      <div class="choice-card">
+        <p class="choice-title">Keep following the schedule</p>
+        <p class="muted">Restricted window keeps growing by 30 min every 9 days.</p>
+        <button class="primary full" onclick="chooseMode('CONTINUE_INTERVAL')">Continue the schedule</button>
+      </div>
+      <div class="choice-card">
+        <p class="choice-title">Go at my own pace</p>
+        <p class="muted">Window grows only after clean streaks, not a fixed calendar.</p>
+        <button class="full" onclick="chooseMode('SELF_PACED')">Switch to self-paced</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="view-settings" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('home')">&#8592; Back</button>
+      <h1>Settings</h1>
+      <label>Cost per vape (PHP)</label>
+      <input type="number" id="set-cost" inputmode="decimal" />
+      <label>Rated puffs</label>
+      <input type="number" id="set-puffs" inputmode="numeric" />
+      <label>Baseline puffs per hour</label>
+      <input type="number" id="set-baseline" inputmode="numeric" />
+      <button class="primary full" onclick="saveSettings()">Save settings</button>
+      <button class="full danger-outline" style="margin-top: 2rem;" onclick="resetApp()">Reset all data</button>
+    </div>
+  </section>
+
+</div>
+
+<div id="toast" class="toast hidden"></div>
+
+<script src="vapedb.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
