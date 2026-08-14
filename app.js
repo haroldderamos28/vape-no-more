@@ -119,12 +119,11 @@ function finishOnboarding() {
   if (editedBaseline && editedBaseline > 0) state.baselinePerHour = editedBaseline;
 
   state.onboarded = true;
-  const roundedStart = roundUpToNearest5Min(new Date());
-  state.startDate = roundedStart.toISOString();
+  state.startDate = new Date().toISOString();
   const phase = PROTOCOL_PHASES[0];
   state.currentRestrictedMin = phase.restrictedMin;
   state.currentAllowedMin = phase.allowedMin;
-  startWindow("RESTRICTED", phase.restrictedMin, roundedStart);
+  startWindow("RESTRICTED", phase.restrictedMin);
   saveState();
   showView("home");
 }
@@ -188,13 +187,8 @@ function maybeStepUpPostProgram() {
 let timerInterval = null;
 let consecutiveCleanWindows = 0;
 
-function roundUpToNearest5Min(date) {
-  const ms = 5 * 60 * 1000;
-  return new Date(Math.ceil(date.getTime() / ms) * ms);
-}
-
-function startWindow(type, durationMin, startAt) {
-  const now = startAt || new Date();
+function startWindow(type, durationMin) {
+  const now = new Date();
   const endsAt = new Date(now.getTime() + durationMin * 60 * 1000);
   state.currentWindow = { type, startedAt: now.toISOString(), endsAt: endsAt.toISOString(), puffsThisWindow: 0 };
   saveState();
