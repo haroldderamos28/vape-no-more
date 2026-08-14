@@ -53,6 +53,7 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+.hidden { display: none !important; }
 .view.hidden { display: none; }
 
 .screen {
