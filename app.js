@@ -98,7 +98,7 @@ function computeBaseline() {
 
   const days = unit === "weeks" ? duration * 7 : duration;
   const puffsPerDay = puffs / days;
-  const baselinePerHour = Math.round(puffsPerDay / 16); // assume ~16 waking hours
+  const baselinePerHour = Math.round(puffsPerDay / 16);
   const costPerPuff = cost / puffs;
 
   state.costPerVape = cost;
@@ -119,11 +119,12 @@ function finishOnboarding() {
   if (editedBaseline && editedBaseline > 0) state.baselinePerHour = editedBaseline;
 
   state.onboarded = true;
-  state.startDate = new Date().toISOString();
+  const roundedStart = roundUpToNearest5Min(new Date());
+  state.startDate = roundedStart.toISOString();
   const phase = PROTOCOL_PHASES[0];
   state.currentRestrictedMin = phase.restrictedMin;
   state.currentAllowedMin = phase.allowedMin;
-  startWindow("RESTRICTED", phase.restrictedMin);
+  startWindow("RESTRICTED", phase.restrictedMin, roundedStart);
   saveState();
   showView("home");
 }
@@ -134,8 +135,10 @@ function getCurrentDay() {
   if (!state.startDate) return 1;
   const start = new Date(state.startDate);
   const now = new Date();
-  const diffMs = now - start;
-  return Math.floor(diffMs / (24 * 60 * 60 * 1000)) + 1;
+  const startMidnight = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const diffDays = Math.round((nowMidnight - startMidnight) / (24 * 60 * 60 * 1000));
+  return diffDays + 1;
 }
 
 function getPhaseForDay(day) {
@@ -170,7 +173,6 @@ function chooseMode(mode) {
   showView("home");
 }
 
-/* post-day-21 step-up, called on window transitions */
 function maybeStepUpPostProgram() {
   if (state.programPhase !== "POST_PROGRAM") return;
   if (state.postProgramMode === "CONTINUE_INTERVAL") {
@@ -179,7 +181,6 @@ function maybeStepUpPostProgram() {
     const stepsEarned = Math.floor(daysSince21 / 9);
     state.currentRestrictedMin = 150 + stepsEarned * 30;
   }
-  // SELF_PACED mode is handled by streak logic in transitionWindow()
 }
 
 /* ---------- WINDOW / TIMER ---------- */
@@ -187,8 +188,13 @@ function maybeStepUpPostProgram() {
 let timerInterval = null;
 let consecutiveCleanWindows = 0;
 
-function startWindow(type, durationMin) {
-  const now = new Date();
+function roundUpToNearest5Min(date) {
+  const ms = 5 * 60 * 1000;
+  return new Date(Math.ceil(date.getTime() / ms) * ms);
+}
+
+function startWindow(type, durationMin, startAt) {
+  const now = startAt || new Date();
   const endsAt = new Date(now.getTime() + durationMin * 60 * 1000);
   state.currentWindow = { type, startedAt: now.toISOString(), endsAt: endsAt.toISOString(), puffsThisWindow: 0 };
   saveState();
