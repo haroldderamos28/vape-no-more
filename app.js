@@ -373,8 +373,12 @@ function notify(title, body) {
 /* ---------- PAUSE / SLEEP ---------- */
 
 function handlePauseToggle() {
-  if (state.paused) resumeTracking();
-  else pauseTracking();
+  if (state.paused) {
+    resumeTracking();
+  } else {
+    if (!confirm("Pause tracking for sleep? This stops your current window, and resuming will start a fresh one.")) return;
+    pauseTracking();
+  }
 }
 
 function pauseTracking() {
@@ -390,27 +394,14 @@ function pauseTracking() {
 
 function resumeTracking() {
   if (!state.paused) return;
-  const pausedAt = new Date(state.pausedAt);
-  const now = new Date();
-  const pauseDurationMs = Math.max(0, now - pausedAt);
-
-  const newEndsAt = new Date(new Date(state.currentWindow.endsAt).getTime() + pauseDurationMs);
-  state.currentWindow.endsAt = newEndsAt.toISOString();
-
-  if (state.startDate) {
-    state.startDate = new Date(new Date(state.startDate).getTime() + pauseDurationMs).toISOString();
-  }
-
   state.paused = false;
   state.pausedAt = null;
+
+  updateProtocolForToday();
+  startWindow("RESTRICTED", state.currentRestrictedMin);
+
   saveState();
-
-  const remainingMs = newEndsAt - new Date();
-  const remainingMin = Math.max(1, Math.round(remainingMs / 60000));
-  scheduleNotifications(state.currentWindow.type, remainingMin);
-  syncPushSubscription();
-
-  showToast("Tracking resumed. Good morning.");
+  showToast("Tracking resumed. Fresh start.");
   renderHome();
 }
 
