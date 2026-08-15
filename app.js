@@ -612,9 +612,46 @@ function resetApp() {
   location.reload();
 }
 
+function swooshMarkup(extraClass) {
+  return '<svg class="corner-swoosh ' + (extraClass || "") + '" viewBox="0 0 320 180" aria-hidden="true">' +
+    '<polygon points="320,0 320,140 0,0" fill="#3D4A17"></polygon>' +
+    '<path d="M -20 60 Q 140 -10 320 90 L 320 0 L 0 0 Z" fill="var(--surface-0)"></path>' +
+    '<path d="M -20 60 Q 140 -10 320 90" stroke="var(--silver)" stroke-width="6" fill="none"></path>' +
+    '</svg>';
+}
+
+const SWOOSH_CONFIG = {
+  "view-home": { top: true, bottom: true },
+  "view-rewards": { top: true, bottom: true },
+  "view-settings": { top: true, bottom: true },
+  "view-onboarding": { top: true, bottom: true },
+  "view-choice": { top: true, bottom: false, compact: true },
+  "view-puffLog": { top: true, bottom: false, compact: true },
+  "view-mood": { top: true, bottom: false, compact: true },
+  "view-slip": { top: true, bottom: false, compact: true },
+  "view-addReward": { top: true, bottom: false, compact: true },
+  "view-claimReward": { top: true, bottom: false, compact: true }
+};
+
+function injectSwooshes() {
+  Object.keys(SWOOSH_CONFIG).forEach((viewId) => {
+    const view = document.getElementById(viewId);
+    if (!view) return;
+    const screen = view.querySelector(".screen");
+    if (!screen || screen.dataset.swooshApplied) return;
+    const cfg = SWOOSH_CONFIG[viewId];
+    const cls = cfg.compact ? "compact" : "";
+    let html = swooshMarkup(cls);
+    if (cfg.bottom) html += swooshMarkup("bottom " + cls);
+    screen.insertAdjacentHTML("afterbegin", html);
+    screen.dataset.swooshApplied = "true";
+  });
+}
+
 /* ---------- INIT ---------- */
 
 function init() {
+  injectSwooshes();
   requestNotificationPermission();
 
   if ("serviceWorker" in navigator) {
