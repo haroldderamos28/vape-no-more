@@ -6,9 +6,9 @@ const VAPID_PUBLIC_KEY = "BLQxmV80N91MIM6qsBgjAPQaQ0EsjRlQaY_EOpegN3kQX9szbz_KoN
 
 const PROTOCOL_PHASES = [
   { dayStart: 1, dayEnd: 3, restrictedMin: 60, allowedMin: 5 },
-  { dayStart: 4, dayEnd: 7, restrictedMin: 90, allowedMin: 5 },
-  { dayStart: 8, dayEnd: 12, restrictedMin: 120, allowedMin: 5 },
-  { dayStart: 13, dayEnd: 21, restrictedMin: 150, allowedMin: 5 }
+  { dayStart: 4, dayEnd: 10, restrictedMin: 90, allowedMin: 5 },
+  { dayStart: 11, dayEnd: 15, restrictedMin: 120, allowedMin: 5 },
+  { dayStart: 16, dayEnd: 21, restrictedMin: 150, allowedMin: 5 }
 ];
 
 function defaultState() {
@@ -183,7 +183,7 @@ function maybeStepUpPostProgram() {
   if (state.postProgramMode === "CONTINUE_INTERVAL") {
     const day = getCurrentDay();
     const daysSince21 = day - 21;
-    const stepsEarned = Math.floor(daysSince21 / 9);
+    const stepsEarned = Math.floor(daysSince21 / 6);
     state.currentRestrictedMin = 150 + stepsEarned * 30;
   }
   // SELF_PACED mode is handled by streak logic in transitionWindow()
