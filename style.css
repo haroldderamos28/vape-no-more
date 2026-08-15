@@ -81,20 +81,25 @@ body {
   align-items: center;
   justify-content: center;
   margin: 0.5rem 0 1.5rem;
+  --ring-size: min(78vw, 300px);
 }
 .screen-fill .ring-svg {
-  width: min(78vw, 300px);
-  height: min(78vw, 300px);
+  width: var(--ring-size);
+  height: var(--ring-size);
 }
 .screen-fill .ring-center {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--ring-size);
+  height: var(--ring-size);
   margin: 0;
-  height: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
 }
 .screen-fill .ring-label { font-size: clamp(13px, 3.2vw, 16px); }
 .screen-fill .ring-time { font-size: clamp(36px, 10.5vw, 52px); }
