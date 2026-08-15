@@ -710,6 +710,7 @@ function renderSettings() {
   document.getElementById("set-puffs").value = state.ratedPuffs;
   document.getElementById("set-baseline").value = state.baselinePerHour;
   document.getElementById("set-allowed").value = state.currentAllowedMin;
+  document.getElementById("set-day").value = Math.min(getCurrentDay(), 21);
 }
 
 function saveSettings() {
@@ -717,6 +718,8 @@ function saveSettings() {
   const puffs = parseFloat(document.getElementById("set-puffs").value);
   const baseline = parseFloat(document.getElementById("set-baseline").value);
   const allowedMin = parseFloat(document.getElementById("set-allowed").value);
+  const day = parseInt(document.getElementById("set-day").value, 10);
+
   if (cost > 0) { state.costPerVape = cost; state.costPerPuff = cost / (puffs || state.ratedPuffs); }
   if (puffs > 0) { state.ratedPuffs = puffs; state.costPerPuff = state.costPerVape / puffs; }
   if (baseline > 0) state.baselinePerHour = baseline;
@@ -727,6 +730,13 @@ function saveSettings() {
       startWindow("ALLOWED", allowedMin);
     }
   }
+  if (day >= 1 && day <= 21) {
+    const now = new Date();
+    const newStart = new Date(now.getTime() - (day - 1) * 24 * 60 * 60 * 1000);
+    state.startDate = newStart.toISOString();
+    updateProtocolForToday();
+  }
+
   saveState();
   showToast("Settings saved");
   showView("home");
