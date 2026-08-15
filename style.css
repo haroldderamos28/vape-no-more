@@ -22,22 +22,22 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface-0: #171715;
-    --surface-1: #201F1C;
-    --surface-2: #2A2926;
-    --text-primary: #F1EFE8;
-    --text-secondary: #B4B2A9;
-    --text-muted: #7A7972;
-    --border: #3A3934;
-    --border-strong: #4A4943;
-    --accent: #7FA050;
-    --accent-dark: #4B5320;
-    --accent-muted: #27500A;
-    --silver: #8B9096;
-    --success: #97C459;
-    --success-bg: #173404;
-    --danger: #F09595;
-    --danger-bg: #501313;
+    --surface-0: #F1EFE8;
+    --surface-1: #F7F5F0;
+    --surface-2: #FFFFFF;
+    --text-primary: #1C1C1A;
+    --text-secondary: #5F5E5A;
+    --text-muted: #94938C;
+    --border: #E3E1D8;
+    --border-strong: #CFCDC3;
+    --accent: #4B5320;
+    --accent-dark: #3D4A17;
+    --accent-muted: #EAF3DE;
+    --silver: #A8ADB4;
+    --success: #27500A;
+    --success-bg: #EAF3DE;
+    --danger: #A32D2D;
+    --danger-bg: #FCEBEB;
   }
 }
 
@@ -69,16 +69,41 @@ body {
   overflow: hidden;
 }
 
+.screen-fill {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.screen-fill .ring-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.5rem 0 1.5rem;
+}
+.screen-fill .ring-svg {
+  width: min(70vw, 260px);
+  height: min(70vw, 260px);
+}
+.screen-fill .ring-center {
+  margin-top: calc(min(70vw, 260px) * -0.76);
+  height: min(70vw, 260px);
+}
+.screen-fill .bottom-actions {
+  margin-top: auto;
+}
+
 .corner-swoosh {
   position: absolute;
   top: 0;
   right: 0;
-  width: 45%;
-  max-width: 220px;
+  width: 34%;
+  max-width: 150px;
   height: auto;
   aspect-ratio: 320 / 180;
   pointer-events: none;
   z-index: 0;
+  opacity: 0.85;
 }
 .corner-swoosh.bottom {
   top: auto;
