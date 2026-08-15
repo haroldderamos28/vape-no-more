@@ -1,9 +1,9 @@
 * { box-sizing: border-box; }
 
 :root {
-  --surface-0: #DED0AC;
-  --surface-1: #E8DCC0;
-  --surface-2: #F3EAD4;
+  --surface-0: #E8DBB8;
+  --surface-1: #EFE4C6;
+  --surface-2: #F8F0DC;
   --text-primary: #1C1C1A;
   --text-secondary: #5F5E5A;
   --text-muted: #8A8270;
@@ -22,9 +22,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --surface-0: #DED0AC;
-    --surface-1: #E8DCC0;
-    --surface-2: #F3EAD4;
+    --surface-0: #E8DBB8;
+    --surface-1: #EFE4C6;
+    --surface-2: #F8F0DC;
     --text-primary: #1C1C1A;
     --text-secondary: #5F5E5A;
     --text-muted: #8A8270;
@@ -311,3 +311,4 @@ button.danger-outline { color: var(--danger); border-color: var(--danger); }
   border: 2.5px solid var(--silver);
 }
 .toast.hidden { display: none; }
+
