@@ -73,7 +73,7 @@
 
   <!-- HOME -->
   <section id="view-home" class="view hidden">
-    <div class="screen">
+    <div class="screen screen-fill">
 
       <div class="topbar">
         <div>
@@ -117,9 +117,11 @@
 
       <button class="primary full" id="allowed-window-btn" onclick="showView('puffLog')">Log puffs</button>
 
-      <div class="row">
-        <button class="full" onclick="showView('rewards')">Rewards</button>
-        <button class="full danger-outline" onclick="showView('slip')">Log a slip</button>
+      <div class="bottom-actions">
+        <div class="row">
+          <button class="full" onclick="showView('rewards')">Rewards</button>
+          <button class="full danger-outline" onclick="showView('slip')">Log a slip</button>
+        </div>
       </div>
 
     </div>
