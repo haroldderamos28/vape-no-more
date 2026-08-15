@@ -1,4 +1,4 @@
-const CACHE_NAME = "vapenomore-cache-v1";
+const CACHE_NAME = "vapenomore-cache-v2";
 const ASSETS = [
   "/",
   "/index.html",
@@ -45,5 +45,17 @@ self.addEventListener("notificationclick", (event) => {
       if (clients.length > 0) return clients[0].focus();
       return self.clients.openWindow("/");
     })
+  );
+});
+
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch (e) {}
+  const title = data.title || "VapeNoMore";
+  const body = data.body || "";
+  event.waitUntil(
+    self.registration.showNotification(title, { body, icon: "icons/icon-192.png" })
   );
 });
