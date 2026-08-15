@@ -96,6 +96,7 @@
           <p class="ring-label" id="ring-window-type">Restricted</p>
           <p class="ring-time" id="ring-time">--:--:--</p>
           <p class="ring-sub" id="ring-sub"></p>
+          <p class="ring-end" id="ring-end"></p>
         </div>
       </div>
 
@@ -130,6 +131,7 @@
       <button class="back-btn" onclick="showView('home')">&#8592; Back</button>
       <p class="eyebrow" id="puff-window-status">Allowed window</p>
       <h1 id="puff-window-time">-- left</h1>
+      <p class="ring-end center" id="puff-window-end"></p>
       <p class="muted center">Puffs this window</p>
       <div class="counter-row">
         <button class="counter-btn" aria-label="Remove a puff" onclick="changePuff(-1)">-</button>
@@ -257,6 +259,8 @@
       <input type="number" id="set-puffs" inputmode="numeric" />
       <label>Baseline puffs per hour</label>
       <input type="number" id="set-baseline" inputmode="numeric" />
+      <label>Allowed (vape) window length, minutes</label>
+      <input type="number" id="set-allowed" inputmode="numeric" />
       <button class="primary full" onclick="saveSettings()">Save settings</button>
       <button class="full danger-outline" style="margin-top: 2rem;" onclick="resetApp()">Reset all data</button>
     </div>
