@@ -64,6 +64,7 @@ function showView(name) {
   if (name === "puffLog") renderPuffLog();
   if (name === "rewards") renderRewards();
   if (name === "settings") renderSettings();
+  if (name === "history") renderHistory();
 }
 
 /* ---------- ONBOARDING ---------- */
@@ -471,6 +472,8 @@ function renderHome() {
   const lastMood = state.moodLog.length ? state.moodLog[state.moodLog.length - 1] : null;
   document.getElementById("home-last-mood").textContent = lastMood ? lastMood.mood : "--";
 
+  renderHistoryList("history-list", 5);
+
   const now = new Date();
   const endsAt = new Date(state.currentWindow.endsAt);
   renderRingTime(endsAt - now);
@@ -491,6 +494,116 @@ function renderRingTime(remainingMs) {
 }
 
 /* ---------- PUFF LOG ---------- */
+
+/* ---------- HISTORY ---------- */
+
+const MOOD_EMOJI = {
+  Easy: "\u{1F60C}", Okay: "\u{1F642}", Restless: "\u{1F615}", Tough: "\u{1F623}",
+  Irritable: "\u{1F624}", Anxious: "\u{1F630}", Proud: "\u{1F4AA}", Tired: "\u{1F634}"
+};
+
+function buildHistoryEntries() {
+  const entries = [];
+  state.puffLog.forEach((p, i) => entries.push({ kind: "puff", index: i, timestamp: p.timestamp, data: p }));
+  state.moodLog.forEach((m, i) => entries.push({ kind: "mood", index: i, timestamp: m.timestamp, data: m }));
+  state.slipLog.forEach((s, i) => entries.push({ kind: "slip", index: i, timestamp: s.timestamp, data: s }));
+  entries.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  return entries;
+}
+
+function historyEntryHtml(e) {
+  const time = formatClockTime(new Date(e.timestamp));
+  let icon = "\u{1F4DD}";
+  let title = "";
+  if (e.kind === "puff") {
+    icon = "\u{1F4A8}";
+    title = e.data.count + " puff" + (e.data.count === 1 ? "" : "s") + " \u00b7 " + (e.data.windowType === "ALLOWED" ? "Allowed" : "Restricted");
+  } else if (e.kind === "mood") {
+    icon = MOOD_EMOJI[e.data.mood] || "\u{1F4DD}";
+    title = e.data.mood + (e.data.note ? " \u00b7 " + escapeHtml(e.data.note) : "");
+  } else if (e.kind === "slip") {
+    icon = e.data.type === "survived" ? "\u{1F4AA}" : "\u26A0\uFE0F";
+    title = (e.data.type === "survived" ? "Beat an urge" : "Gave in") + (e.data.note ? " \u00b7 " + escapeHtml(e.data.note) : "");
+  }
+  return (
+    '<div class="history-item" onclick="openHistoryEdit(\'' + e.kind + "', " + e.index + '); event.stopPropagation();">' +
+    '<span class="history-icon">' + icon + "</span>" +
+    '<div class="history-body"><p class="history-title">' + title + "</p>" +
+    '<p class="history-time">' + time + "</p></div>" +
+    "</div>"
+  );
+}
+
+function renderHistoryList(elementId, limit) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+  const entries = buildHistoryEntries();
+  const shown = limit ? entries.slice(0, limit) : entries;
+  if (shown.length === 0) {
+    el.innerHTML = '<p class="hint center">No activity logged yet.</p>';
+    return;
+  }
+  el.innerHTML = shown.map(historyEntryHtml).join("");
+}
+
+function renderHistory() {
+  renderHistoryList("full-history-list", null);
+}
+
+let editingHistoryKind = null;
+let editingHistoryIndex = null;
+
+function openHistoryEdit(kind, index) {
+  editingHistoryKind = kind;
+  editingHistoryIndex = index;
+
+  document.getElementById("he-puff-fields").classList.add("hidden");
+  document.getElementById("he-mood-fields").classList.add("hidden");
+  document.getElementById("he-slip-fields").classList.add("hidden");
+
+  if (kind === "puff") {
+    document.getElementById("he-title").textContent = "Edit puff log";
+    document.getElementById("he-puff-fields").classList.remove("hidden");
+    document.getElementById("he-puff-count").value = state.puffLog[index].count;
+  } else if (kind === "mood") {
+    document.getElementById("he-title").textContent = "Edit check-in";
+    document.getElementById("he-mood-fields").classList.remove("hidden");
+    document.getElementById("he-mood-select").value = state.moodLog[index].mood;
+    document.getElementById("he-mood-note").value = state.moodLog[index].note || "";
+  } else if (kind === "slip") {
+    document.getElementById("he-title").textContent = "Edit slip log";
+    document.getElementById("he-slip-fields").classList.remove("hidden");
+    document.getElementById("he-slip-select").value = state.slipLog[index].type;
+    document.getElementById("he-slip-note").value = state.slipLog[index].note || "";
+  }
+  showView("historyEdit");
+}
+
+function saveHistoryEdit() {
+  if (editingHistoryKind === "puff") {
+    const val = parseInt(document.getElementById("he-puff-count").value, 10);
+    state.puffLog[editingHistoryIndex].count = Math.max(0, isNaN(val) ? 0 : val);
+  } else if (editingHistoryKind === "mood") {
+    state.moodLog[editingHistoryIndex].mood = document.getElementById("he-mood-select").value;
+    state.moodLog[editingHistoryIndex].note = document.getElementById("he-mood-note").value;
+  } else if (editingHistoryKind === "slip") {
+    state.slipLog[editingHistoryIndex].type = document.getElementById("he-slip-select").value;
+    state.slipLog[editingHistoryIndex].note = document.getElementById("he-slip-note").value;
+  }
+  saveState();
+  showToast("Updated");
+  showView("home");
+}
+
+function deleteHistoryEntry() {
+  if (!confirm("Delete this entry? This can't be undone.")) return;
+  if (editingHistoryKind === "puff") state.puffLog.splice(editingHistoryIndex, 1);
+  else if (editingHistoryKind === "mood") state.moodLog.splice(editingHistoryIndex, 1);
+  else if (editingHistoryKind === "slip") state.slipLog.splice(editingHistoryIndex, 1);
+  saveState();
+  showToast("Deleted");
+  showView("home");
+}
 
 function renderPuffLog() {
   const type = state.currentWindow.type;
