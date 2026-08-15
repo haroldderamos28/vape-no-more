@@ -1,5 +1,9 @@
 const STORAGE_KEY = "tapr_state_v1";
 
+const SUPABASE_URL = "https://fnhrdwmudooyalpuyujw.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_HIyBOeD5nvkPx5_jd8wV6Q_cpPy9GCY";
+const VAPID_PUBLIC_KEY = "BLQxmV80N91MIM6qsBgjAPQaQ0EsjRlQaY_EOpegN3kQX9szbz_KoNnX73XTVzLwkBfr8RxnTpp7AKB287rhWXo";
+
 const PROTOCOL_PHASES = [
   { dayStart: 1, dayEnd: 3, restrictedMin: 60, allowedMin: 5 },
   { dayStart: 4, dayEnd: 7, restrictedMin: 90, allowedMin: 5 },
@@ -196,9 +200,35 @@ function startWindow(type, durationMin) {
   state.currentWindow = { type, startedAt: now.toISOString(), endsAt: endsAt.toISOString(), puffsThisWindow: 0 };
   saveState();
   scheduleNotifications(type, durationMin);
+  syncPushSubscription();
+}
+
+function playAlarm() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === "suspended") ctx.resume();
+    const now = ctx.currentTime;
+    for (let i = 0; i < 2; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, now + i * 0.35);
+      gain.gain.exponentialRampToValueAtTime(0.3, now + i * 0.35 + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.35 + 0.28);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(now + i * 0.35);
+      osc.stop(now + i * 0.35 + 0.3);
+    }
+  } catch (e) {}
+
+  if (navigator.vibrate) {
+    navigator.vibrate([250, 120, 250]);
+  }
 }
 
 function transitionWindow() {
+  playAlarm();
   const finishedType = state.currentWindow.type;
 
   if (finishedType === "RESTRICTED") {
@@ -230,6 +260,34 @@ function transitionWindow() {
   }
 }
 
+function playAlarmBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    [0, 0.35, 0.7].forEach((offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.0001, now + offset);
+      gain.gain.exponentialRampToValueAtTime(0.3, now + offset + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + offset + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + offset);
+      osc.stop(now + offset + 0.3);
+    });
+  } catch (e) {}
+}
+
+function alertWindowEnd() {
+  playAlarmBeep();
+  if ("vibrate" in navigator) {
+    navigator.vibrate([250, 100, 250, 100, 250]);
+  }
+}
+
 function tick() {
   if (!state.onboarded) return;
   if (state.programPhase === "AWAITING_CHOICE") return;
@@ -239,6 +297,7 @@ function tick() {
   const remainingMs = endsAt - now;
 
   if (remainingMs <= 0) {
+    alertWindowEnd();
     transitionWindow();
     return;
   }
@@ -308,8 +367,76 @@ function notify(title, body) {
 }
 
 function requestNotificationPermission() {
-  if ("Notification" in window && Notification.permission === "default") {
-    Notification.requestPermission();
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "default") {
+    Notification.requestPermission().then((result) => {
+      if (result === "granted") syncPushSubscription();
+    });
+  } else if (Notification.permission === "granted") {
+    syncPushSubscription();
+  }
+}
+
+/* ---------- BACKGROUND PUSH SYNC ---------- */
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; i++) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+async function getPushSubscription() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+      });
+    }
+    return sub;
+  } catch (e) {
+    console.error("push subscribe failed", e);
+    return null;
+  }
+}
+
+async function syncPushSubscription() {
+  if (!state.onboarded) return;
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const sub = await getPushSubscription();
+  if (!sub) return;
+  const json = sub.toJSON();
+
+  const payload = {
+    endpoint: json.endpoint,
+    p256dh: json.keys.p256dh,
+    auth: json.keys.auth,
+    window_type: state.currentWindow.type,
+    window_ends_at: state.currentWindow.endsAt,
+    notified_end: false,
+    notified_warning: false
+  };
+
+  try {
+    await fetch(SUPABASE_URL + "/rest/v1/push_subscriptions?on_conflict=endpoint", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.error("sync push subscription failed", e);
   }
 }
 
