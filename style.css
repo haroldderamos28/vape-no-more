@@ -75,12 +75,11 @@ body {
   flex-direction: column;
 }
 .screen-fill .ring-wrap {
-  flex: 1;
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0.5rem 0 1.5rem;
+  margin: 1rem 0 1.5rem;
   --ring-size: min(78vw, 300px);
 }
 .screen-fill .ring-svg {
