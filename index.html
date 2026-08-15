@@ -263,6 +263,9 @@
       <input type="number" id="set-baseline" inputmode="numeric" />
       <label>Allowed (vape) window length, minutes</label>
       <input type="number" id="set-allowed" inputmode="numeric" />
+      <label>Current day of protocol (1-21)</label>
+      <input type="number" id="set-day" inputmode="numeric" min="1" max="21" />
+      <p class="hint">Already quit for a few days before finding this app? Set your real starting day here.</p>
       <button class="primary full" onclick="saveSettings()">Save settings</button>
       <button class="full danger-outline" style="margin-top: 2rem;" onclick="resetApp()">Reset all data</button>
 
