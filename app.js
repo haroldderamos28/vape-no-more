@@ -1,10 +1,10 @@
 const STORAGE_KEY = "tapr_state_v1";
 
 const PROTOCOL_PHASES = [
-  { dayStart: 1, dayEnd: 3, restrictedMin: 60, allowedMin: 60 },
-  { dayStart: 4, dayEnd: 7, restrictedMin: 90, allowedMin: 60 },
-  { dayStart: 8, dayEnd: 12, restrictedMin: 120, allowedMin: 60 },
-  { dayStart: 13, dayEnd: 21, restrictedMin: 150, allowedMin: 60 }
+  { dayStart: 1, dayEnd: 3, restrictedMin: 60, allowedMin: 5 },
+  { dayStart: 4, dayEnd: 7, restrictedMin: 90, allowedMin: 5 },
+  { dayStart: 8, dayEnd: 12, restrictedMin: 120, allowedMin: 5 },
+  { dayStart: 13, dayEnd: 21, restrictedMin: 150, allowedMin: 5 }
 ];
 
 function defaultState() {
@@ -18,7 +18,8 @@ function defaultState() {
     programPhase: "MANDATORY_21",
     postProgramMode: null,
     currentRestrictedMin: 150,
-    currentAllowedMin: 60,
+    currentAllowedMin: 5,
+    customAllowedMin: null,
     currentWindow: { type: "RESTRICTED", startedAt: null, endsAt: null },
     puffLog: [],
     moodLog: [],
@@ -98,7 +99,7 @@ function computeBaseline() {
 
   const days = unit === "weeks" ? duration * 7 : duration;
   const puffsPerDay = puffs / days;
-  const baselinePerHour = Math.round(puffsPerDay / 16);
+  const baselinePerHour = Math.round(puffsPerDay / 16); // assume ~16 waking hours
   const costPerPuff = cost / puffs;
 
   state.costPerVape = cost;
@@ -160,7 +161,7 @@ function updateProtocolForToday() {
   if (state.programPhase === "MANDATORY_21") {
     const phase = getPhaseForDay(day);
     state.currentRestrictedMin = phase.restrictedMin;
-    state.currentAllowedMin = phase.allowedMin;
+    state.currentAllowedMin = state.customAllowedMin || phase.allowedMin;
   }
 }
 
@@ -172,6 +173,7 @@ function chooseMode(mode) {
   showView("home");
 }
 
+/* post-day-21 step-up, called on window transitions */
 function maybeStepUpPostProgram() {
   if (state.programPhase !== "POST_PROGRAM") return;
   if (state.postProgramMode === "CONTINUE_INTERVAL") {
@@ -180,6 +182,7 @@ function maybeStepUpPostProgram() {
     const stepsEarned = Math.floor(daysSince21 / 9);
     state.currentRestrictedMin = 150 + stepsEarned * 30;
   }
+  // SELF_PACED mode is handled by streak logic in transitionWindow()
 }
 
 /* ---------- WINDOW / TIMER ---------- */
@@ -246,6 +249,10 @@ function tick() {
   if (!document.getElementById("view-puffLog").classList.contains("hidden")) {
     renderPuffWindowTime(remainingMs);
   }
+}
+
+function formatClockTime(date) {
+  return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function formatDuration(ms) {
@@ -318,6 +325,8 @@ function renderHome() {
   document.getElementById("ring-window-type").textContent = type === "RESTRICTED" ? "Restricted" : "Allowed";
   document.getElementById("ring-sub").textContent =
     (type === "RESTRICTED" ? state.currentRestrictedMin : state.currentAllowedMin) + " min window";
+  document.getElementById("ring-end").textContent =
+    "Ends at " + formatClockTime(new Date(state.currentWindow.endsAt));
 
   const banner = document.getElementById("status-banner");
   const statusText = document.getElementById("status-text");
@@ -368,6 +377,8 @@ function renderPuffLog() {
 
 function renderPuffWindowTime(remainingMs) {
   document.getElementById("puff-window-time").textContent = formatDuration(remainingMs) + " left";
+  document.getElementById("puff-window-end").textContent =
+    "Ends at " + formatClockTime(new Date(state.currentWindow.endsAt));
 }
 
 function changePuff(delta) {
@@ -571,15 +582,24 @@ function renderSettings() {
   document.getElementById("set-cost").value = state.costPerVape;
   document.getElementById("set-puffs").value = state.ratedPuffs;
   document.getElementById("set-baseline").value = state.baselinePerHour;
+  document.getElementById("set-allowed").value = state.currentAllowedMin;
 }
 
 function saveSettings() {
   const cost = parseFloat(document.getElementById("set-cost").value);
   const puffs = parseFloat(document.getElementById("set-puffs").value);
   const baseline = parseFloat(document.getElementById("set-baseline").value);
+  const allowedMin = parseFloat(document.getElementById("set-allowed").value);
   if (cost > 0) { state.costPerVape = cost; state.costPerPuff = cost / (puffs || state.ratedPuffs); }
   if (puffs > 0) { state.ratedPuffs = puffs; state.costPerPuff = state.costPerVape / puffs; }
   if (baseline > 0) state.baselinePerHour = baseline;
+  if (allowedMin > 0) {
+    state.customAllowedMin = allowedMin;
+    state.currentAllowedMin = allowedMin;
+    if (state.currentWindow.type === "ALLOWED") {
+      startWindow("ALLOWED", allowedMin);
+    }
+  }
   saveState();
   showToast("Settings saved");
   showView("home");
