@@ -244,6 +244,7 @@ button.danger-outline { color: var(--danger); border-color: var(--danger); }
 
 .section-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin: 0; }
 .link-btn { background: none; border: none; padding: 0; color: var(--accent); font-size: 12px; font-weight: 600; }
+.link-btn.center-block { display: block; margin: 0 auto 1rem; text-align: center; font-size: 13px; }
 
 .history-section {
   flex: 1;
