@@ -29,7 +29,9 @@ function defaultState() {
     moodLog: [],
     slipLog: [],
     rewards: [],
-    pendingMoodForWindowEnd: null
+    pendingMoodForWindowEnd: null,
+    paused: false,
+    pausedAt: null
   };
 }
 
@@ -292,6 +294,7 @@ function alertWindowEnd() {
 function tick() {
   if (!state.onboarded) return;
   if (state.programPhase === "AWAITING_CHOICE") return;
+  if (state.paused) return;
 
   const now = new Date();
   const endsAt = new Date(state.currentWindow.endsAt);
@@ -364,6 +367,80 @@ function notify(title, body) {
     navigator.serviceWorker.ready.then(reg => reg.showNotification(title, { body, icon: "icons/icon-192.png" }));
   } else {
     new Notification(title, { body });
+  }
+}
+
+/* ---------- PAUSE / SLEEP ---------- */
+
+function handlePauseToggle() {
+  if (state.paused) resumeTracking();
+  else pauseTracking();
+}
+
+function pauseTracking() {
+  if (state.paused) return;
+  state.paused = true;
+  state.pausedAt = new Date().toISOString();
+  clearScheduledNotifications();
+  saveState();
+  syncPushSubscriptionPaused();
+  renderHome();
+  showToast("Tracking paused. Sleep well.");
+}
+
+function resumeTracking() {
+  if (!state.paused) return;
+  const pausedAt = new Date(state.pausedAt);
+  const now = new Date();
+  const pauseDurationMs = Math.max(0, now - pausedAt);
+
+  const newEndsAt = new Date(new Date(state.currentWindow.endsAt).getTime() + pauseDurationMs);
+  state.currentWindow.endsAt = newEndsAt.toISOString();
+
+  if (state.startDate) {
+    state.startDate = new Date(new Date(state.startDate).getTime() + pauseDurationMs).toISOString();
+  }
+
+  state.paused = false;
+  state.pausedAt = null;
+  saveState();
+
+  const remainingMs = newEndsAt - new Date();
+  const remainingMin = Math.max(1, Math.round(remainingMs / 60000));
+  scheduleNotifications(state.currentWindow.type, remainingMin);
+  syncPushSubscription();
+
+  showToast("Tracking resumed. Good morning.");
+  renderHome();
+}
+
+async function syncPushSubscriptionPaused() {
+  const sub = await getPushSubscription();
+  if (!sub) return;
+  const json = sub.toJSON();
+  const farFuture = new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+  const payload = {
+    endpoint: json.endpoint,
+    p256dh: json.keys.p256dh,
+    auth: json.keys.auth,
+    window_type: state.currentWindow.type,
+    window_ends_at: farFuture.toISOString(),
+    notified_end: true,
+    notified_warning: true
+  };
+  try {
+    await fetch(SUPABASE_URL + "/rest/v1/push_subscriptions?on_conflict=endpoint", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": "Bearer " + SUPABASE_ANON_KEY,
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.error("pause push sync failed", e);
   }
 }
 
@@ -450,23 +527,36 @@ function renderHome() {
   document.getElementById("home-progress-fill").style.width = Math.min(100, (day / 21) * 100) + "%";
 
   const type = state.currentWindow.type;
-  document.getElementById("ring-window-type").textContent = type === "RESTRICTED" ? "Restricted" : "Allowed";
-  document.getElementById("ring-sub").textContent =
-    (type === "RESTRICTED" ? state.currentRestrictedMin : state.currentAllowedMin) + " min window";
-  document.getElementById("ring-end").textContent =
-    "Ends at " + formatClockTime(new Date(state.currentWindow.endsAt));
-
+  const pauseBtn = document.getElementById("pause-toggle-btn");
   const banner = document.getElementById("status-banner");
   const statusText = document.getElementById("status-text");
-  if (type === "RESTRICTED") {
-    banner.className = "status-banner";
-    statusText.textContent = (state.currentWindow.puffsThisWindow || 0) === 0 ? "No vapes yet this window" : "Puffs logged this window";
-  } else {
-    banner.className = "status-banner warning";
-    statusText.textContent = "Allowed window is open";
-  }
 
-  document.getElementById("allowed-window-btn").style.display = type === "ALLOWED" ? "block" : "none";
+  if (state.paused) {
+    pauseBtn.textContent = "\u2600\uFE0F Resume tracking";
+    document.getElementById("ring-window-type").textContent = "Paused";
+    document.getElementById("ring-time").textContent = "--:--:--";
+    document.getElementById("ring-sub").textContent = "";
+    document.getElementById("ring-end").textContent = "Tap resume when you wake up";
+    banner.className = "status-banner warning";
+    statusText.textContent = "Tracking paused for sleep";
+    document.getElementById("allowed-window-btn").style.display = "none";
+  } else {
+    pauseBtn.textContent = "\u{1F634} Sleeping? Pause tracking";
+    document.getElementById("ring-window-type").textContent = type === "RESTRICTED" ? "Restricted" : "Allowed";
+    document.getElementById("ring-sub").textContent =
+      (type === "RESTRICTED" ? state.currentRestrictedMin : state.currentAllowedMin) + " min window";
+    document.getElementById("ring-end").textContent =
+      "Ends at " + formatClockTime(new Date(state.currentWindow.endsAt));
+
+    if (type === "RESTRICTED") {
+      banner.className = "status-banner";
+      statusText.textContent = (state.currentWindow.puffsThisWindow || 0) === 0 ? "No vapes yet this window" : "Puffs logged this window";
+    } else {
+      banner.className = "status-banner warning";
+      statusText.textContent = "Allowed window is open";
+    }
+    document.getElementById("allowed-window-btn").style.display = type === "ALLOWED" ? "block" : "none";
+  }
 
   document.getElementById("home-saved").textContent = "\u20b1" + computeTotalSaved().toFixed(0);
   const lastMood = state.moodLog.length ? state.moodLog[state.moodLog.length - 1] : null;
@@ -474,9 +564,11 @@ function renderHome() {
 
   renderHistoryList("history-list", 5);
 
-  const now = new Date();
-  const endsAt = new Date(state.currentWindow.endsAt);
-  renderRingTime(endsAt - now);
+  if (!state.paused) {
+    const now = new Date();
+    const endsAt = new Date(state.currentWindow.endsAt);
+    renderRingTime(endsAt - now);
+  }
 }
 
 function renderRingTime(remainingMs) {
@@ -921,6 +1013,8 @@ function init() {
   } else {
     if (state.programPhase === "AWAITING_CHOICE") {
       showView("choice");
+    } else if (state.paused) {
+      showView("home");
     } else {
       updateProtocolForToday();
       if (state.currentWindow.endsAt && new Date(state.currentWindow.endsAt) < new Date()) {
