@@ -1,6 +1,6 @@
 {
-  "name": "Tapr - quit vaping on your terms",
-  "short_name": "Tapr",
+  "name": "VapeNoMore - quit vaping on your terms",
+  "short_name": "VapeNoMore",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F1EFE8",
