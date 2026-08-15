@@ -242,6 +242,41 @@ button.danger-outline { color: var(--danger); border-color: var(--danger); }
 .stat-label { font-size: 11px; color: var(--text-secondary); margin: 0; }
 .stat-value { font-size: 18px; font-weight: 600; margin: 2px 0 0; }
 
+.section-label { font-size: 12px; color: var(--text-secondary); font-weight: 500; margin: 0; }
+.link-btn { background: none; border: none; padding: 0; color: var(--accent); font-size: 12px; font-weight: 600; }
+
+.history-section {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0.75rem;
+}
+.history-section .row.space-between { margin-bottom: 8px; }
+
+.history-list {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  border: 3px solid var(--silver);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+#full-history-list.history-list { flex: none; max-height: none; overflow-y: visible; }
+
+.history-item {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.history-item:last-child { border-bottom: none; }
+.history-icon { font-size: 18px; line-height: 1; }
+.history-title { font-size: 13px; font-weight: 500; margin: 0; }
+.history-time { font-size: 11px; color: var(--text-muted); margin: 2px 0 0; }
+
 .back-btn { background: none; border: none; padding: 0; color: var(--text-secondary); font-size: 14px; margin-bottom: 1rem; }
 
 .counter-row { display: flex; align-items: center; justify-content: center; gap: 24px; margin: 1rem 0; }
