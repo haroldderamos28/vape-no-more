@@ -1,4 +1,4 @@
-const CACHE_NAME = "tapr-cache-v2";
+const CACHE_NAME = "vapenomore-cache-v1";
 const ASSETS = [
   "/",
   "/index.html",
