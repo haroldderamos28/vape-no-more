@@ -80,9 +80,14 @@
           <p class="eyebrow" id="home-protocol-label">21-day protocol</p>
           <p class="day-label" id="home-day-label">Day 1 of 21</p>
         </div>
-        <button class="icon-btn" aria-label="Settings" onclick="showView('settings')">
-          <span class="icon">&#9881;</span>
-        </button>
+        <div class="row" style="gap: 8px;">
+          <button class="icon-btn" aria-label="History" onclick="showView('history')">
+            <span class="icon">&#128220;</span>
+          </button>
+          <button class="icon-btn" aria-label="Settings" onclick="showView('settings')">
+            <span class="icon">&#9881;</span>
+          </button>
+        </div>
       </div>
 
       <div class="progress-bar"><div class="progress-fill" id="home-progress-fill"></div></div>
@@ -113,6 +118,14 @@
           <p class="stat-label">Last check-in</p>
           <p class="stat-value" id="home-last-mood">--</p>
         </div>
+      </div>
+
+      <div class="history-section">
+        <div class="row space-between">
+          <p class="section-label">Recent activity</p>
+          <button class="link-btn" onclick="showView('history')">View all</button>
+        </div>
+        <div id="history-list" class="history-list"></div>
       </div>
 
       <button class="primary full" id="allowed-window-btn" onclick="showView('puffLog')">Log puffs</button>
@@ -247,6 +260,57 @@
         <p class="muted">Window grows only after clean streaks, not a fixed calendar.</p>
         <button class="full" onclick="chooseMode('SELF_PACED')">Switch to self-paced</button>
       </div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="view-history" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('home')">&#8592; Back</button>
+      <h1>Full history</h1>
+      <div id="full-history-list" class="history-list"></div>
+    </div>
+  </section>
+
+  <!-- HISTORY EDIT -->
+  <section id="view-historyEdit" class="view hidden">
+    <div class="screen">
+      <button class="back-btn" onclick="showView('home')">&#8592; Back</button>
+      <h1 id="he-title">Edit entry</h1>
+
+      <div id="he-puff-fields" class="hidden">
+        <label>Puff count</label>
+        <input type="number" id="he-puff-count" inputmode="numeric" />
+      </div>
+
+      <div id="he-mood-fields" class="hidden">
+        <label>Mood</label>
+        <select id="he-mood-select">
+          <option value="Easy">&#128524; Easy</option>
+          <option value="Okay">&#128578; Okay</option>
+          <option value="Restless">&#128533; Restless</option>
+          <option value="Tough">&#128547; Tough</option>
+          <option value="Irritable">&#128548; Irritable</option>
+          <option value="Anxious">&#128560; Anxious</option>
+          <option value="Proud">&#128170; Proud</option>
+          <option value="Tired">&#128564; Tired</option>
+        </select>
+        <label>Note</label>
+        <textarea id="he-mood-note" rows="3"></textarea>
+      </div>
+
+      <div id="he-slip-fields" class="hidden">
+        <label>Type</label>
+        <select id="he-slip-select">
+          <option value="survived">I beat it</option>
+          <option value="gave_in">I gave in</option>
+        </select>
+        <label>Note</label>
+        <textarea id="he-slip-note" rows="3"></textarea>
+      </div>
+
+      <button class="primary full" onclick="saveHistoryEdit()">Save changes</button>
+      <button class="full danger-outline" style="margin-top: 10px;" onclick="deleteHistoryEntry()">Delete entry</button>
     </div>
   </section>
 
