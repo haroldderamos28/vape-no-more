@@ -739,6 +739,14 @@ function resetApp() {
   location.reload();
 }
 
+async function testWindowEndSoon() {
+  const endsAt = new Date(Date.now() + 2 * 60 * 1000);
+  state.currentWindow.endsAt = endsAt.toISOString();
+  saveState();
+  await syncPushSubscription();
+  showToast("Window ends at " + formatClockTime(endsAt) + " - close the app now");
+}
+
 function swooshMarkup(extraClass) {
   return '<svg class="corner-swoosh ' + (extraClass || "") + '" viewBox="0 0 320 180" aria-hidden="true">' +
     '<polygon points="320,0 320,140 0,0" fill="#3D4A17"></polygon>' +
