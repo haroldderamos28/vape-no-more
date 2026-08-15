@@ -76,19 +76,36 @@ body {
 }
 .screen-fill .ring-wrap {
   flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0.5rem 0 1.5rem;
 }
 .screen-fill .ring-svg {
-  width: min(70vw, 260px);
-  height: min(70vw, 260px);
+  width: min(78vw, 300px);
+  height: min(78vw, 300px);
 }
 .screen-fill .ring-center {
-  margin-top: calc(min(70vw, 260px) * -0.76);
-  height: min(70vw, 260px);
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  height: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
+.screen-fill .ring-label { font-size: clamp(13px, 3.2vw, 16px); }
+.screen-fill .ring-time { font-size: clamp(36px, 10.5vw, 52px); }
+.screen-fill .ring-sub { font-size: clamp(13px, 3.2vw, 15px); }
+.screen-fill .ring-end { font-size: clamp(14px, 3.6vw, 17px); }
+.screen-fill .day-label { font-size: clamp(19px, 5vw, 24px); }
+.screen-fill .eyebrow { font-size: clamp(12px, 3vw, 14px); }
+.screen-fill .status-banner { font-size: clamp(14px, 3.6vw, 17px); padding: 14px 16px; }
+.screen-fill .stat-value { font-size: clamp(19px, 5vw, 23px); }
+.screen-fill .stat-label { font-size: clamp(12px, 3vw, 13px); }
+.screen-fill button { font-size: clamp(15px, 3.8vw, 17px); padding: 14px 16px; }
 .screen-fill .bottom-actions {
   margin-top: auto;
 }
