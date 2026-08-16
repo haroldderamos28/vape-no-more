@@ -847,7 +847,10 @@ function renderRewards() {
   sorted.forEach((r) => {
     const card = document.createElement("div");
     const unlocked = total >= r.cost;
-    card.className = "reward-card" + (!unlocked && total < r.cost * 0.3 ? " dim" : "");
+    const isClaimed = r.status === "claimed";
+    card.className = "reward-card" +
+      (!unlocked && !isClaimed && total < r.cost * 0.3 ? " dim" : "") +
+      (unlocked && !isClaimed ? " unlocked-glow" : "");
 
     if (r.status === "claimed") {
       card.innerHTML =
