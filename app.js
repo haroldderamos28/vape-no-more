@@ -318,6 +318,20 @@ function formatClockTime(date) {
   return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
+function formatLogDateTime(date) {
+  const now = new Date();
+  const isToday = date.toDateString() === now.toDateString();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const time = formatClockTime(date);
+  if (isToday) return "Today \u00b7 " + time;
+  if (isYesterday) return "Yesterday \u00b7 " + time;
+  const dateStr = date.toLocaleDateString([], { month: "short", day: "numeric" });
+  return dateStr + " \u00b7 " + time;
+}
+
 function formatDuration(ms) {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
   const h = Math.floor(totalSec / 3600);
@@ -595,12 +609,13 @@ function buildHistoryEntries() {
 }
 
 function historyEntryHtml(e) {
-  const time = formatClockTime(new Date(e.timestamp));
+  const time = formatLogDateTime(new Date(e.timestamp));
   let icon = "\u{1F4DD}";
   let title = "";
   if (e.kind === "puff") {
     icon = "\u{1F4A8}";
-    title = e.data.count + " puff" + (e.data.count === 1 ? "" : "s") + " \u00b7 " + (e.data.windowType === "ALLOWED" ? "Allowed" : "Restricted");
+    title = e.data.count + " puff" + (e.data.count === 1 ? "" : "s") + " \u00b7 " + (e.data.windowType === "ALLOWED" ? "Allowed" : "Restricted") +
+      (e.data.note ? " \u00b7 " + escapeHtml(e.data.note) : "");
   } else if (e.kind === "mood") {
     icon = MOOD_EMOJI[e.data.mood] || "\u{1F4DD}";
     title = e.data.mood + (e.data.note ? " \u00b7 " + escapeHtml(e.data.note) : "");
@@ -648,6 +663,7 @@ function openHistoryEdit(kind, index) {
     document.getElementById("he-title").textContent = "Edit puff log";
     document.getElementById("he-puff-fields").classList.remove("hidden");
     document.getElementById("he-puff-count").value = state.puffLog[index].count;
+    document.getElementById("he-puff-note").value = state.puffLog[index].note || "";
   } else if (kind === "mood") {
     document.getElementById("he-title").textContent = "Edit check-in";
     document.getElementById("he-mood-fields").classList.remove("hidden");
@@ -666,6 +682,7 @@ function saveHistoryEdit() {
   if (editingHistoryKind === "puff") {
     const val = parseInt(document.getElementById("he-puff-count").value, 10);
     state.puffLog[editingHistoryIndex].count = Math.max(0, isNaN(val) ? 0 : val);
+    state.puffLog[editingHistoryIndex].note = document.getElementById("he-puff-note").value;
   } else if (editingHistoryKind === "mood") {
     state.moodLog[editingHistoryIndex].mood = document.getElementById("he-mood-select").value;
     state.moodLog[editingHistoryIndex].note = document.getElementById("he-mood-note").value;
