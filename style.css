@@ -320,26 +320,23 @@ button.danger-outline { color: var(--danger); border-color: var(--danger); }
 }
 .reward-card.unlocked-glow { animation: rewardGlow 1.8s ease-in-out infinite; }
 
-@keyframes mascotBob {
-  0%, 100% { transform: translateY(0) rotate(-2deg); }
-  50% { transform: translateY(-6px) rotate(2deg); }
+@keyframes soldierSalute {
+  0%, 12% { transform: rotate(0deg); }
+  35%, 65% { transform: rotate(-110deg); }
+  88%, 100% { transform: rotate(0deg); }
 }
-@keyframes mascotBlink {
-  0%, 92%, 100% { transform: scaleY(1); }
-  95% { transform: scaleY(0.15); }
-}
-.mascot-sprout {
+.mascot-soldier {
   position: absolute;
   bottom: -6px;
   right: -6px;
   width: 52px;
   height: 52px;
-  animation: mascotBob 3.4s ease-in-out infinite;
-  transform-origin: bottom center;
 }
-.mascot-eye { animation: mascotBlink 4.5s ease-in-out infinite; transform-origin: center; transform-box: fill-box; }
-.mascot-leaf-left { transform-origin: 30px 26px; animation: mascotBob 3.4s ease-in-out infinite; animation-delay: -0.3s; }
-.mascot-leaf-right { transform-origin: 30px 22px; animation: mascotBob 3.4s ease-in-out infinite; animation-delay: -0.6s; }
+.mascot-arm {
+  transform-box: fill-box;
+  transform-origin: top center;
+  animation: soldierSalute 3.4s ease-in-out infinite;
+}
 
 .choice-card { border: 3px solid var(--silver); border-radius: var(--radius); padding: 14px; margin-bottom: 12px; background: var(--surface-2); }
 .choice-title { font-size: 15px; font-weight: 600; margin: 0 0 4px; }
