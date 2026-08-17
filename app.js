@@ -30,6 +30,7 @@ function defaultState() {
     slipLog: [],
     rewards: [],
     pendingMoodForWindowEnd: null,
+    awaitingMoodConfirm: false,
     paused: false,
     pausedAt: null
   };
@@ -230,11 +231,12 @@ function playAlarm() {
   }
 }
 
-function transitionWindow() {
-  playAlarm();
+function transitionWindowCore() {
   const finishedType = state.currentWindow.type;
+  let finishedRestricted = false;
 
   if (finishedType === "RESTRICTED") {
+    finishedRestricted = true;
     if ((state.currentWindow.puffsThisWindow || 0) === 0) consecutiveCleanWindows++;
     else consecutiveCleanWindows = 0;
 
@@ -245,18 +247,22 @@ function transitionWindow() {
       }
     }
 
-    state.pendingMoodForWindowEnd = true;
     updateProtocolForToday();
     maybeStepUpPostProgram();
-    startWindow("ALLOWED", state.currentAllowedMin);
+    state.awaitingMoodConfirm = true;
+    clearScheduledNotifications();
+    syncPushSubscriptionPaused();
   } else {
     startWindow("RESTRICTED", state.currentRestrictedMin);
   }
   saveState();
+  return finishedRestricted;
+}
 
-  if (state.pendingMoodForWindowEnd) {
-    state.pendingMoodForWindowEnd = false;
-    saveState();
+function transitionWindow() {
+  playAlarm();
+  const finishedRestricted = transitionWindowCore();
+  if (finishedRestricted) {
     showView("mood");
   } else {
     renderHome();
@@ -295,6 +301,7 @@ function tick() {
   if (!state.onboarded) return;
   if (state.programPhase === "AWAITING_CHOICE") return;
   if (state.paused) return;
+  if (state.awaitingMoodConfirm) return;
 
   const now = new Date();
   const endsAt = new Date(state.currentWindow.endsAt);
@@ -768,6 +775,12 @@ function saveMood() {
   }
   const note = document.getElementById("mood-note").value;
   state.moodLog.push({ mood: selected.dataset.mood, note, timestamp: new Date().toISOString() });
+
+  if (state.awaitingMoodConfirm) {
+    state.awaitingMoodConfirm = false;
+    startWindow("ALLOWED", state.currentAllowedMin);
+  }
+
   saveState();
   document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("selected"));
   document.getElementById("mood-note").value = "";
@@ -1026,10 +1039,18 @@ function init() {
       showView("choice");
     } else if (state.paused) {
       showView("home");
+    } else if (state.awaitingMoodConfirm) {
+      showView("mood");
     } else {
       updateProtocolForToday();
       if (state.currentWindow.endsAt && new Date(state.currentWindow.endsAt) < new Date()) {
-        transitionWindow();
+        const finishedRestricted = transitionWindowCore();
+        if (finishedRestricted) {
+          showView("mood");
+        } else {
+          showView("home");
+          showToast("Welcome back \u2014 caught up while you were away");
+        }
       } else {
         showView("home");
       }
