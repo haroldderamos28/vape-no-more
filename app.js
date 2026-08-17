@@ -198,8 +198,8 @@ function maybeStepUpPostProgram() {
 let timerInterval = null;
 let consecutiveCleanWindows = 0;
 
-function startWindow(type, durationMin) {
-  const now = new Date();
+function startWindow(type, durationMin, startAt) {
+  const now = startAt ? new Date(startAt) : new Date();
   const endsAt = new Date(now.getTime() + durationMin * 60 * 1000);
   state.currentWindow = { type, startedAt: now.toISOString(), endsAt: endsAt.toISOString(), puffsThisWindow: 0 };
   saveState();
@@ -253,7 +253,8 @@ function transitionWindowCore() {
     clearScheduledNotifications();
     syncPushSubscriptionPaused();
   } else {
-    startWindow("RESTRICTED", state.currentRestrictedMin);
+    const trueStart = state.currentWindow.endsAt;
+    startWindow("RESTRICTED", state.currentRestrictedMin, trueStart);
   }
   saveState();
   return finishedRestricted;
@@ -1039,20 +1040,27 @@ function init() {
       showView("choice");
     } else if (state.paused) {
       showView("home");
-    } else if (state.awaitingMoodConfirm) {
-      showView("mood");
     } else {
       updateProtocolForToday();
-      if (state.currentWindow.endsAt && new Date(state.currentWindow.endsAt) < new Date()) {
-        const finishedRestricted = transitionWindowCore();
-        if (finishedRestricted) {
-          showView("mood");
-        } else {
-          showView("home");
-          showToast("Welcome back \u2014 caught up while you were away");
-        }
+
+      let caughtUp = false;
+      let iterations = 0;
+      while (
+        !state.awaitingMoodConfirm &&
+        state.currentWindow.endsAt &&
+        new Date(state.currentWindow.endsAt) < new Date() &&
+        iterations < 10
+      ) {
+        transitionWindowCore();
+        caughtUp = true;
+        iterations++;
+      }
+
+      if (state.awaitingMoodConfirm) {
+        showView("mood");
       } else {
         showView("home");
+        if (caughtUp) showToast("Welcome back \u2014 caught up while you were away");
       }
     }
   }
